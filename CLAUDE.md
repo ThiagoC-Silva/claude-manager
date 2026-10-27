@@ -4,7 +4,8 @@ Repositório do mod `cc-manager` do Claude Code: um painel ao lado do chat com o
 
 ## Onde editar
 
-- Edite sempre aqui, em `~/claude-manager`. `~/.claude/mods/claude-manager` é um link para esta pasta, e o `settings.json` carrega o mod por esse caminho (`CLAUDE_CODE_PLUGIN_DIRS`): a sessão recarrega o mod quando os arquivos mudam.
+- Edite sempre aqui, em `~/Área de trabalho/claude-manager`. Na máquina de desenvolvimento, o `env` do `~/.claude/settings.json` aponta `CLAUDE_CODE_PLUGIN_DIRS` para esta pasta, e a sessão recarrega o mod quando os arquivos mudam, sem commit nem `/plugin`.
+- Nessa máquina, a cópia do marketplace fica desligada (`"cc-manager@claude-manager": false` em `enabledPlugins`), senão o painel e o comando aparecem duas vezes. O `env` só vale numa sessão nova: depois de mudá-lo, reinicie o Claude Code.
 - Não crie cópia do mod em `~/.claude/dev-mods/`. Ao usar a skill `plugin-authoring`, aplique as orientações dela a esta pasta.
 - Nas outras máquinas, o mod é instalado pelo `/plugin` e não deve ser editado lá.
 
@@ -21,7 +22,7 @@ Repositório do mod `cc-manager` do Claude Code: um painel ao lado do chat com o
 
 - Identificadores, comentários e textos da interface em português do Brasil.
 - Comentários só onde explicam um porquê não óbvio, como os que já existem.
-- Cores só pela `PALETA` (Voltage) no topo de `register.tsx`; nada de hex nem chave do tema fora dela. Os cartões pintam o próprio fundo (`vazio`), por isso as cores fixas não dependem do tema. Cartões com `borderStyle={RAIO}` (cantos arredondados).
+- Cores só pela `PALETA` (Brasa Neon) no topo de `register.tsx`; nada de hex nem chave do tema fora dela. Tons derivados (degradê, partes apagadas) saem de `misturar` e `degrade` sobre cores da paleta. Os cartões pintam o próprio fundo (`cartao`), por isso as cores fixas não dependem do tema. Cartões com `borderStyle={RAIO}` (cantos arredondados), cada um com a sua cor de destaque na borda e no título.
 - Estado com `atom({ plugin: 'cc-manager', key }, inicial, { shape })`. Lido com `read` ao desenhar e alterado com `update`. Cada chave nova vai também em `types/index.d.ts`.
 - Ao mudar os campos de um valor guardado (ex.: `Medida`), troque a etiqueta `shape` (`medida-1` → `medida-2`), para que o estado antigo seja recusado em vez de quebrar o desenho.
 - Hooks que só observam terminam em `return next(e)`. Trabalho que não pode segurar a sessão roda sem `await`, com `void ...catch(() => {})`.
