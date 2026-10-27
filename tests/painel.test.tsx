@@ -36,8 +36,14 @@ test('o painel desenha os cartões com a paleta', async ($, on) => {
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
 
-    expect((await ui.find({ type: 'Text', text: /CONTEXTO/ }))?.text).toBe('ϟ CONTEXTO')
-    expect((await ui.find({ type: 'Text', text: /^ +72%$/ }))?.text).toBe(' 72%')
+    expect((await ui.find({ type: 'Text', text: /^contexto/ }))?.text).toBe(
+      'contexto · 144.0k / 200.0k tokens',
+    )
+    // O número grande é desenhado só no terminal; nas outras superfícies, texto.
+    if (surface === 'terminal')
+      expect((await ui.find({ type: 'Text', text: /^╺━┓┏━┓$/ }))?.text).toBe('╺━┓┏━┓')
+    else expect((await ui.find({ type: 'Text', text: /^ +72%$/ }))?.text).toBe(' 72%')
+    expect((await ui.find({ type: 'Text', text: /^ +95%$/ }))?.text).toBe(' 95%')
     expect((await ui.find({ type: 'Text', text: /US\$/ }))?.text).toBe('US$ 1.50')
     await ui.unmount()
   }
