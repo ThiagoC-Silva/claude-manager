@@ -21,7 +21,7 @@ Repositório do mod `cc-manager` do Claude Code: um painel ao lado do chat com o
 
 - Identificadores, comentários e textos da interface em português do Brasil.
 - Comentários só onde explicam um porquê não óbvio, como os que já existem.
-- Cores pelas chaves do tema (`success`, `warning`, `error`), nunca valores fixos: cada tema decide o tom.
+- Cores só pela `PALETA` (Voltage) no topo de `register.tsx`; nada de hex nem chave do tema fora dela. Os cartões pintam o próprio fundo (`vazio`), por isso as cores fixas não dependem do tema. Cartões com `borderStyle={RAIO}` (cantos arredondados).
 - Estado com `atom({ plugin: 'cc-manager', key }, inicial, { shape })`. Lido com `read` ao desenhar e alterado com `update`. Cada chave nova vai também em `types/index.d.ts`.
 - Ao mudar os campos de um valor guardado (ex.: `Medida`), troque a etiqueta `shape` (`medida-1` → `medida-2`), para que o estado antigo seja recusado em vez de quebrar o desenho.
 - Hooks que só observam terminam em `return next(e)`. Trabalho que não pode segurar a sessão roda sem `await`, com `void ...catch(() => {})`.

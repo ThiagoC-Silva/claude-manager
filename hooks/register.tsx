@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderNode } from 'claude-code'
 
 import type { Janela, Medida } from '../types'
 
@@ -15,20 +15,30 @@ const medida = atom({ plugin: 'cc-manager', key: 'medida' } as const, null, {
 const ATENCAO = 60
 const CRITICO = 80
 
-// Chaves do tema, não cores: cada tema decide o tom de cada faixa.
-const VERDE = 'success'
-const AMARELO = 'warning'
-const VERMELHO = 'error'
+// Paleta Voltage. Cores fixas, não chaves do tema: os cartões pintam o
+// próprio fundo (vazio), então o contraste não depende do tema da pessoa.
+const PALETA = {
+  vazio: '#0D0500', // Dark Void: fundo dos cartões
+  carmesim: '#FF4500', // Electric Crimson: crítico
+  ambar: '#FFAA00', // Amber Flash: títulos e destaques
+  amarelo: '#FFE600', // Neon Yellow: atenção
+  verde: '#00FF85', // Electric Green: saudável
+  texto: '#F5E9DC',
+  apagado: '#8C7B6B',
+  trilho: '#3D2A14', // parte vazia das barras
+  borda: '#7A4100', // âmbar escurecido: o brilho fica para os dados
+} as const
+
+const RAIO = 'round'
+const ICONE = 'ϟ'
 
 const corDoContexto = (p: number) =>
-  p >= CRITICO ? VERMELHO : p >= ATENCAO ? AMARELO : VERDE
-const corDoUso = (p: number) => (p >= 90 ? VERMELHO : p >= 70 ? AMARELO : VERDE)
+  p >= CRITICO ? PALETA.carmesim : p >= ATENCAO ? PALETA.amarelo : PALETA.verde
+const corDoUso = (p: number) =>
+  p >= 90 ? PALETA.carmesim : p >= 70 ? PALETA.amarelo : PALETA.verde
 
-const barra = (percent: number, largura: number) => {
-  const cheio = Math.round((Math.min(100, Math.max(0, percent)) / 100) * largura)
-
-  return '█'.repeat(cheio) + '░'.repeat(largura - cheio)
-}
+const preenchido = (percent: number, largura: number) =>
+  Math.round((Math.min(100, Math.max(0, percent)) / 100) * largura)
 
 const reinicio = (iso: string | undefined, agora: number) => {
   if (!iso) return ''
@@ -108,47 +118,95 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
     const m = await read($, medida)
     const agora = await $.clock.now()
-    const largura = Math.max(10, Math.min(40, (e.props?.bodyColumns ?? 30) - 8))
+    // Borda (2) e respiro lateral (2) do cartão.
+    const largura = Math.max(10, Math.min(40, (e.props?.bodyColumns ?? 30) - 4))
 
-    if (!m) return <Text dimColor>Sem medição ainda.</Text>
-
-    const linha = (rotulo: string, j: Janela | undefined) => (
-      <Box flexDirection="column" marginTop={1}>
-        <Text bold>{rotulo}</Text>
-        {j ? (
-          <Box flexDirection="column">
-            <Text color={corDoUso(j.percentUsed)}>
-              {barra(j.percentUsed, largura)} {Math.round(j.percentUsed)}%
-            </Text>
-            <Text dimColor>reinicia em {reinicio(j.resetsAt, agora) || '—'}</Text>
-          </Box>
-        ) : (
-          <Text dimColor>sem leitura (só em assinatura, após a 1ª resposta)</Text>
-        )}
+    const cartao = (filhos: RenderNode, topo = 0) => (
+      <Box
+        flexDirection="column"
+        borderStyle={RAIO}
+        borderColor={PALETA.borda}
+        backgroundColor={PALETA.vazio}
+        paddingX={1}
+        marginTop={topo}
+      >
+        {filhos}
       </Box>
     )
 
+    const cabecalho = (rotulo: string, percent: number | undefined, cor: string) => (
+      <Box justifyContent="space-between">
+        <Text color={PALETA.ambar} bold>
+          {rotulo}
+        </Text>
+        <Text color={percent === undefined ? PALETA.apagado : cor} bold>
+          {percent === undefined ? '--%' : `${String(Math.round(percent)).padStart(3)}%`}
+        </Text>
+      </Box>
+    )
+
+    const barra = (percent: number | undefined, cor: string) => {
+      const cheio = percent === undefined ? 0 : preenchido(percent, largura)
+
+      return (
+        <Text>
+          <Text color={cor}>{'━'.repeat(cheio)}</Text>
+          <Text color={PALETA.trilho}>{'─'.repeat(largura - cheio)}</Text>
+        </Text>
+      )
+    }
+
+    if (!m)
+      return cartao(<Text color={PALETA.apagado}>{ICONE} aguardando medição…</Text>)
+
+    const janela = (rotulo: string, j: Janela | undefined) => {
+      const cor = j ? corDoUso(j.percentUsed) : PALETA.apagado
+
+      return cartao(
+        <>
+          {cabecalho(rotulo, j?.percentUsed, cor)}
+          {barra(j?.percentUsed, cor)}
+          <Text color={PALETA.apagado}>
+            {j
+              ? `reinicia em ${reinicio(j.resetsAt, agora) || '—'}`
+              : 'sem leitura · só em assinatura, após a 1ª resposta'}
+          </Text>
+        </>,
+        1,
+      )
+    }
+
+    const corCtx = m.percent === undefined ? PALETA.apagado : corDoContexto(m.percent)
+
     return (
       <Box flexDirection="column">
-        <Text bold>Contexto</Text>
-        {m.percent === undefined ? (
-          <Text dimColor>sem leitura</Text>
-        ) : (
-          <Text color={corDoContexto(m.percent)}>
-            {barra(m.percent, largura)} {m.percent}%
-          </Text>
+        {cartao(
+          <>
+            {cabecalho(`${ICONE} CONTEXTO`, m.percent, corCtx)}
+            {barra(m.percent, corCtx)}
+            <Text color={PALETA.apagado}>
+              {kb(m.tokens)} / {kb(m.window)} tokens
+            </Text>
+            <Box marginTop={1}>
+              <Text color={PALETA.texto}>
+                <Text color={corCtx}>› </Text>
+                {conselho(m.percent)}
+              </Text>
+            </Box>
+          </>,
         )}
-        <Text dimColor>
-          {kb(m.tokens)} de {kb(m.window)} tokens
-        </Text>
-        <Text>{conselho(m.percent)}</Text>
-        {linha('Sessão (5 h)', m.janelas.find(j => j.kind === 'five_hour'))}
-        {linha('Semana (7 dias)', m.janelas.find(j => j.kind === 'seven_day'))}
-        {m.usd !== undefined && (
-          <Box marginTop={1}>
-            <Text dimColor>Custo da sessão: US$ {m.usd.toFixed(2)}</Text>
-          </Box>
-        )}
+        {janela('// SESSÃO · 5H', m.janelas.find(j => j.kind === 'five_hour'))}
+        {janela('// SEMANA · 7D', m.janelas.find(j => j.kind === 'seven_day'))}
+        {m.usd !== undefined &&
+          cartao(
+            <Box justifyContent="space-between">
+              <Text color={PALETA.apagado}>◆ custo da sessão</Text>
+              <Text color={PALETA.ambar} bold>
+                US$ {m.usd.toFixed(2)}
+              </Text>
+            </Box>,
+            1,
+          )}
       </Box>
     )
   })
