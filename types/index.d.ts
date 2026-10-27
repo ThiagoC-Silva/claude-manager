@@ -5,7 +5,6 @@ export type Medida = {
   tokens?: number
   window: number
   janelas: Janela[]
-  usd?: number
 }
 
 declare module 'claude-code' {

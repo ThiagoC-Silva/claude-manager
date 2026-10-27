@@ -27,7 +27,6 @@ test('o painel desenha os cartões com a paleta', async ($, on) => {
         { kind: 'five_hour', percentUsed: 95, resetsAt: '2030-01-01T00:00:00Z' },
         { kind: 'seven_day', percentUsed: 12 },
       ],
-      cost: { usd: 1.5 },
     },
   }))
 
@@ -44,7 +43,7 @@ test('o painel desenha os cartões com a paleta', async ($, on) => {
       expect((await ui.find({ type: 'Text', text: /^╺━┓┏━┓$/ }))?.text).toBe('╺━┓┏━┓')
     else expect((await ui.find({ type: 'Text', text: /^ +72%$/ }))?.text).toBe(' 72%')
     expect((await ui.find({ type: 'Text', text: /^ +95%$/ }))?.text).toBe(' 95%')
-    expect((await ui.find({ type: 'Text', text: /US\$/ }))?.text).toBe('US$ 1.50')
+    expect(await ui.find({ type: 'Text', text: /US\$/ })).toBeUndefined()
     await ui.unmount()
   }
 })

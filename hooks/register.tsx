@@ -7,7 +7,7 @@ const PANE = 'cc-manager'
 // Troque a etiqueta quando os campos de Medida mudarem: ela recusa o que uma
 // versão anterior guardou, e isso sobrevive à recarga.
 const medida = atom({ plugin: 'cc-manager', key: 'medida' } as const, null, {
-  shape: 'medida-1',
+  shape: 'medida-2',
 })
 
 // Limiares de contexto. São heurística de comunidade, não números da
@@ -17,21 +17,24 @@ const CRITICO = 80
 // Limiar de atenção dos limites de 5 horas e da semana.
 const ATENCAO_USO = 70
 
-// Paleta Brasa: carvão em relevo e um degradê laranja → vermelho → magenta.
-// Cores fixas, não chaves do tema: os cartões pintam o próprio fundo, então o
-// contraste não depende do tema da pessoa.
+// Paleta Brasa Neon: fundo quase preto puxado para o violeta, para o neon
+// saltar, e um degradê laranja → vermelho → magenta. Cores fixas, não chaves
+// do tema: os cartões pintam o próprio fundo, então o contraste não depende do
+// tema da pessoa.
 const PALETA = {
-  fundo: '#1C1C1E', // carvão: corpo do painel
-  cartao: '#262628', // um tom acima do fundo, como relevo
-  borda: '#34343A', // quase a cor do cartão: sugere o relevo sem contornar
-  pilula: '#161618', // etiqueta afundada no cartão
-  laranja: '#F7931E', // início do degradê: folga
-  vermelho: '#E8262B', // meio do degradê: atenção
-  magenta: '#A3286F', // fim do degradê: limite
-  texto: '#E4E4E6',
-  apagado: '#7C7C82',
-  trilho: '#38383C', // parte vazia das barras
+  fundo: '#0B0710', // corpo do painel
+  cartao: '#140E19', // um tom acima do fundo, como relevo
+  laranja: '#FF8C1A', // início do degradê: folga
+  vermelho: '#FF2E4D', // meio do degradê: atenção
+  magenta: '#FF1FA0', // fim do degradê: limite
+  violeta: '#B43CFF', // destaque fora do degradê: sinal de %
+  texto: '#FFF1F7',
+  apagado: '#A68BA8', // lavanda: texto secundário sem cair no cinza
 } as const
+
+// Quanto a parte vazia das barras se apaga rumo ao fundo do cartão: o degradê
+// continua visível, como neon desligado.
+const APAGADO = 0.8
 
 const RAIO = 'round'
 // O fundo dos cartões não cobre o corpo do painel (as margens entre eles e o
@@ -112,7 +115,6 @@ async function atualizar($: EngineInterface) {
       percentUsed: j.percentUsed,
       resetsAt: j.resetsAt,
     })),
-    usd: u.cost?.usd,
   }
   await update($, medida, () => valor)
 }
@@ -159,11 +161,11 @@ export const register: Register = on => {
     // Borda (2) e respiro lateral (2) do cartão.
     const largura = Math.max(10, Math.min(40, (e.props?.bodyColumns ?? 30) - 4))
 
-    const cartao = (filhos: RenderNode, topo = 0) => (
+    const cartao = (cor: string, filhos: RenderNode, topo = 0) => (
       <Box
         flexDirection="column"
         borderStyle={RAIO}
-        borderColor={PALETA.borda}
+        borderColor={cor}
         backgroundColor={PALETA.cartao}
         paddingX={1}
         marginTop={topo}
@@ -172,14 +174,14 @@ export const register: Register = on => {
       </Box>
     )
 
-    // Rótulo, barra vermelha e etiqueta afundada, como as abas da referência.
-    const titulo = (rotulo: string, etiqueta: string) => (
+    // Rótulo, barra e etiqueta acesa na cor do cartão, como as abas da referência.
+    const titulo = (cor: string, rotulo: string, etiqueta: string) => (
       <Text>
-        <Text color={PALETA.texto} bold>
+        <Text color={cor} bold>
           {rotulo}
         </Text>
-        <Text color={PALETA.vermelho}>{SEPARADOR}</Text>
-        <Text color={PALETA.laranja} backgroundColor={PALETA.pilula} bold>
+        <Text color={PALETA.texto}>{SEPARADOR}</Text>
+        <Text color={PALETA.fundo} backgroundColor={cor} bold>
           {` ${etiqueta} `}
         </Text>
       </Text>
@@ -191,22 +193,26 @@ export const register: Register = on => {
       </Text>
     )
 
-    // Cada célula cheia toma a cor do degradê na sua posição, então a barra
-    // só chega ao magenta quando passa do limiar de atenção.
+    // Cada célula toma a cor do degradê na sua posição, então a barra só
+    // chega ao magenta quando passa do limiar de atenção; a parte vazia mostra
+    // o mesmo degradê apagado.
     const barra = (percent: number | undefined, atencao: number) => {
       const cheio = percent === undefined ? 0 : preenchido(percent, largura)
 
       return (
         <Text>
-          {Array.from({ length: cheio }, (_, i) => (
-            <Text color={degrade(((i + 0.5) / largura) * 100, atencao)}>━</Text>
-          ))}
-          <Text color={PALETA.trilho}>{'━'.repeat(largura - cheio)}</Text>
+          {Array.from({ length: largura }, (_, i) => {
+            const cor = degrade(((i + 0.5) / largura) * 100, atencao)
+
+            return (
+              <Text color={i < cheio ? cor : misturar(cor, PALETA.cartao, APAGADO)}>━</Text>
+            )
+          })}
         </Text>
       )
     }
 
-    // O número grande escurece de cima para baixo até a cor da ponta da barra.
+    // O número grande desce pelo degradê inteiro, uma cor por linha.
     const numeroGrande = (percent: number | undefined, cor: string) => {
       if (percent === undefined || e.surface !== 'terminal')
         return porcento(percent, cor)
@@ -217,10 +223,14 @@ export const register: Register = on => {
         <Box flexDirection="column">
           {[0, 1, 2].map(linha => (
             <Text>
-              <Text color={misturar(PALETA.laranja, cor, linha / 2)} bold>
+              <Text color={[PALETA.laranja, PALETA.vermelho, PALETA.magenta][linha]} bold>
                 {digitos.map(d => ALGARISMOS[d][linha]).join('')}
               </Text>
-              {linha === 2 && <Text color={PALETA.texto}> %</Text>}
+              {linha === 2 && (
+                <Text color={PALETA.violeta} bold>
+                  {' %'}
+                </Text>
+              )}
             </Text>
           ))}
         </Box>
@@ -228,23 +238,39 @@ export const register: Register = on => {
     }
 
     if (!m)
-      return cartao(<Text color={PALETA.apagado}>{ICONE} aguardando medição…</Text>)
+      return cartao(
+        PALETA.laranja,
+        <Text color={PALETA.apagado}>
+          <Text color={PALETA.laranja}>{ICONE}</Text> aguardando medição…
+        </Text>,
+      )
 
-    const janela = (rotulo: string, etiqueta: string, j: Janela | undefined) => {
+    const janela = (
+      destaque: string,
+      rotulo: string,
+      etiqueta: string,
+      j: Janela | undefined,
+    ) => {
       const cor = j ? degrade(j.percentUsed, ATENCAO_USO) : PALETA.apagado
 
       return cartao(
+        destaque,
         <>
           <Box justifyContent="space-between">
-            {titulo(rotulo, etiqueta)}
+            {titulo(destaque, rotulo, etiqueta)}
             {porcento(j?.percentUsed, cor)}
           </Box>
           {barra(j?.percentUsed, ATENCAO_USO)}
-          <Text color={PALETA.apagado}>
-            {j
-              ? `reinicia em ${reinicio(j.resetsAt, agora) || '—'}`
-              : 'sem leitura · só em assinatura, após a 1ª resposta'}
-          </Text>
+          {j ? (
+            <Text color={PALETA.apagado}>
+              reinicia em{' '}
+              <Text color={PALETA.texto} bold>
+                {reinicio(j.resetsAt, agora) || '—'}
+              </Text>
+            </Text>
+          ) : (
+            <Text color={PALETA.apagado}>sem leitura · só em assinatura, após a 1ª resposta</Text>
+          )}
         </>,
         1,
       )
@@ -255,10 +281,15 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         {cartao(
+          PALETA.laranja,
           <>
             {numeroGrande(m.percent, corCtx)}
             <Text color={PALETA.apagado}>
-              contexto · {kb(m.tokens)} / {kb(m.window)} tokens
+              <Text color={PALETA.laranja} bold>
+                contexto
+              </Text>
+              {' · '}
+              <Text color={PALETA.texto}>{kb(m.tokens)}</Text> / {kb(m.window)} tokens
             </Text>
             {barra(m.percent, ATENCAO)}
             <Box marginTop={1}>
@@ -269,18 +300,8 @@ export const register: Register = on => {
             </Box>
           </>,
         )}
-        {janela('Sessão', '5h', m.janelas.find(j => j.kind === 'five_hour'))}
-        {janela('Semana', '7d', m.janelas.find(j => j.kind === 'seven_day'))}
-        {m.usd !== undefined &&
-          cartao(
-            <Box justifyContent="space-between">
-              {titulo('Custo', 'sessão')}
-              <Text color={PALETA.laranja} bold>
-                US$ {m.usd.toFixed(2)}
-              </Text>
-            </Box>,
-            1,
-          )}
+        {janela(PALETA.vermelho, 'Sessão', '5h', m.janelas.find(j => j.kind === 'five_hour'))}
+        {janela(PALETA.magenta, 'Semana', '7d', m.janelas.find(j => j.kind === 'seven_day'))}
       </Box>
     )
   })
