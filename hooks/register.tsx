@@ -30,6 +30,9 @@ const PALETA = {
 } as const
 
 const RAIO = 'round'
+// O fundo dos cartões não cobre o corpo do painel (as margens entre eles e o
+// que sobra embaixo): esse é pintado pela superfície, pedido aqui.
+const ABRIR = { id: PANE, title: 'Contexto e uso', backgroundColor: PALETA.vazio }
 const ICONE = 'ϟ'
 
 const corDoContexto = (p: number) =>
@@ -85,7 +88,7 @@ export const register: Register = on => {
       name: 'cc-manager',
       description: 'Abre o painel de contexto e de uso ao lado do chat',
     })
-    void $.ui.open({ id: PANE, title: 'Contexto e uso' })
+    void $.ui.open(ABRIR)
     await atualizar($)
     // Mantém a contagem regressiva do reinício em dia entre as respostas.
     $.clock.every(60000, () => atualizar($))
@@ -94,7 +97,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'cc-manager' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Contexto e uso' })
+    await $.ui.open(ABRIR)
 
     return { text: 'Painel aberto.' }
   })
