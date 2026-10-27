@@ -1,6 +1,6 @@
 {
   "name": "cc-manager",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Painel ao lado do chat com a barra de contexto e as barras de uso da sessão de 5 horas e da semana",
   "types": "./types/index.d.ts"
 }
