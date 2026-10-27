@@ -1,0 +1,5 @@
+{
+  "name": "claude-manager",
+  "owner": { "name": "ThiagoC-Silva" },
+  "plugins": [{ "name": "painel-contexto", "source": "./" }]
+}
