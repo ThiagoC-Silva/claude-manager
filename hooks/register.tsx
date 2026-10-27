@@ -3,10 +3,10 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Janela, Medida } from '../types'
 
-const PANE = 'painel-contexto'
+const PANE = 'cc-manager'
 // Troque a etiqueta quando os campos de Medida mudarem: ela recusa o que uma
 // versão anterior guardou, e isso sobrevive à recarga.
-const medida = atom({ plugin: 'painel-contexto', key: 'medida' } as const, null, {
+const medida = atom({ plugin: 'cc-manager', key: 'medida' } as const, null, {
   shape: 'medida-1',
 })
 
@@ -72,7 +72,7 @@ async function atualizar($: EngineInterface) {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'painel-contexto',
+      name: 'cc-manager',
       description: 'Abre o painel de contexto e de uso ao lado do chat',
     })
     void $.ui.open({ id: PANE, title: 'Contexto e uso' })
@@ -83,7 +83,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'painel-contexto' }, async $ => {
+  on('command.run', { command: 'cc-manager' }, async $ => {
     await $.ui.open({ id: PANE, title: 'Contexto e uso' })
 
     return { text: 'Painel aberto.' }

@@ -10,6 +10,6 @@ export type Medida = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'painel-contexto': { medida: Shaped<Medida | null> }
+    'cc-manager': { medida: Shaped<Medida | null> }
   }
 }

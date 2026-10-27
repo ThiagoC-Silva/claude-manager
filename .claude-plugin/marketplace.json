@@ -1,5 +1,5 @@
 {
   "name": "claude-manager",
   "owner": { "name": "ThiagoC-Silva" },
-  "plugins": [{ "name": "painel-contexto", "source": "./" }]
+  "plugins": [{ "name": "cc-manager", "source": "./" }]
 }
